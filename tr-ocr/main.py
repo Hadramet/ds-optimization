@@ -1,64 +1,34 @@
 # tr-ocr fastapi for inference
-
-import os
-import sys
-import json
-import uvicorn
 from fastapi import FastAPI, File, UploadFile
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Tuple
-from tr_ocr import pipeline
-import tensorflow as tf
-import numpy as np
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
-from io import BytesIO
-from datetime import datetime
+import requests
 
-# Define the FastAPI app
 app = FastAPI()
 
-# Define the model
-class Model(BaseModel):
-    name: str
-    version: str
-    date: str
-    description: str
-    url: str
-
-# Define the prediction
-class Prediction(BaseModel):
-    label: str
-    confidence: float
+processor = TrOCRProcessor.from_pretrained('microsoft/trocr-large-printed')
+model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-large-printed')
 
 
-# app startup event
 @app.on_event("startup")
 async def startup_event():
-    global tr_ocr_pipeline
-    tr_ocr_pipeline = pipeline.Pipeline()
+    print("Loading model...")
 
-# app shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
-    tr_ocr_pipeline = None
+    print("Shutting down model...")
 
-# Define the root endpoint
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-# Define the inference endpoint
 @app.post("/inference")
 async def inference(file: UploadFile = File(...)):
-    # Read the image file
-    image_bytes = await file.read()
-    image = Image.open(BytesIO(image_bytes))
+    image = Image.open(file.file)
+    pixel_values = processor(images=image, return_tensors="pt").pixel_values
+    generated_ids = model.generate(pixel_values)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]    
+    return {"text": generated_text}
 
-    # Inference
-    prediction = tr_ocr_pipeline.recognize([np.array(image)])[0]
-
-    # Format the prediction
-    return {
-        "message": "success",
-        "prediction": prediction
-    }
+# Command to run the server locally
+# uvicorn main:app --reload --host
