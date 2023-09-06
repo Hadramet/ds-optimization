@@ -1,0 +1,1 @@
+# tr-ocrr fastapi inference server
