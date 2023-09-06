@@ -4,9 +4,19 @@
 import os
 import sys
 import json
+import requests
 
 def trOcrInference(image) -> tuple[str, float]:
-    return "dummy", 0.0
+    tr_ocr_url = "http://localhost:8086/inference"
+    files = {'file': open(image, 'rb')}
+    response = requests.post(tr_ocr_url, files=files)
+    response_json = response.json()
+    text = response_json['text']
+    conf = 0.0
+    print(f"\ttrOcrInference: text: {text}, conf: {conf}")
+    return text, conf
+
+
 
 def paddleOcrInference(image) -> tuple[str, float]:
     return "dummy", 0.0
@@ -19,17 +29,20 @@ def ensemblePediction(images_txt: str):
     with open(images_txt, "r") as f:
         images = f.readlines()
 
-    
+    # images_txt_file = os.path.basename(images_txt)
+    images_txt_folder = os.path.dirname(images_txt)
+
     ensemble = {}
-    for image in images:
+    for image in images[:10]:
         line_split = image.split()
         image = line_split[0]
         label = " ".join(line_split[1:])
         print(f"image: {image}, label: {label}")
-
-        trOcrPred, trOcrConf = trOcrInference(image)
-        paddleOcrPred, paddleOcrConf = paddleOcrInference(image)
-        kerasOcrPred, kerasOcrConf = kerasOcrInference(image)
+        image = image[1:]
+        image_full_path = os.path.join(images_txt_folder, image)
+        trOcrPred, trOcrConf = trOcrInference(image_full_path)
+        paddleOcrPred, paddleOcrConf = paddleOcrInference(image_full_path)
+        kerasOcrPred, kerasOcrConf = kerasOcrInference(image_full_path)
 
         ensemble[image] = {'label': label}
         ensemble[image]['trOcr'] = {'pred': trOcrPred, 'conf': trOcrConf}
@@ -37,7 +50,6 @@ def ensemblePediction(images_txt: str):
         ensemble[image]['kerasOcr'] = {'pred': kerasOcrPred, 'conf': kerasOcrConf}
 
     output_file = "ensemble.json" 
-    images_txt_folder = os.path.dirname(images_txt)
     output_file = os.path.join(images_txt_folder, output_file)
     
     with open(output_file, "w") as f:
