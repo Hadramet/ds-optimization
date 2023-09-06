@@ -2,7 +2,6 @@
 from fastapi import FastAPI, File, UploadFile
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
-import requests
 
 app = FastAPI()
 
@@ -30,5 +29,3 @@ async def inference(file: UploadFile = File(...)):
     generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]    
     return {"text": generated_text}
 
-# Command to run the server locally
-# uvicorn main:app --reload --host

@@ -1,1 +1,1 @@
-# paddle-ocrr fastapi inference server
+# TODO
