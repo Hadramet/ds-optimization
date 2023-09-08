@@ -19,7 +19,15 @@ def trOcrInference(image) -> tuple[str, float]:
 
 
 def paddleOcrInference(image) -> tuple[str, float]:
-    return "dummy", 0.0
+    paddle_ocr_url = "http://localhost:8087/inference"
+    files = {'file': open(image, 'rb')}
+    response = requests.post(paddle_ocr_url, files=files)
+    response_json = response.json()
+    print(f"response_json: {response_json}")
+    text = response_json['text']
+    conf = 0.0
+    print(f"\tpaddleOcrInference: text: {text}, conf: {conf}")
+    return text, conf
 
 def kerasOcrInference(image) -> tuple[str, float]:
     return "dummy", 0.0
